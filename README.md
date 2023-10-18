@@ -14,7 +14,7 @@ This tool uses:
 * The excellent [rqrr crate](https://docs.rs/rqrr/latest/rqrr/) for digging out otpauth data from most image types
 * The reverse engineered [protobuf](https://alexbakker.me/post/parsing-google-auth-export-qr-code.html)
 * The [file-format crate](https://docs.rs/file-format/latest/file_format/) for classifying stdin
-* Shout out to [totp-rs](https://docs.rs/totp-rs/latest/totp_rs/) for its succinct byte slicing and **Algorithm Enum**; derivations of both were used here [MIT LICENSE](LICENSE)
+* Shout out to [totp-rs](https://docs.rs/totp-rs/latest/totp_rs/) for its succinct byte slicing and **Algorithm Enum**; derivations of both were used. [MIT LICENSE](LICENSE)
 
 <HR>
 
