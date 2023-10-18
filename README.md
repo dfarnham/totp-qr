@@ -16,6 +16,9 @@ This tool uses:
 * The [file-format crate](https://docs.rs/file-format/latest/file_format/) for classifying stdin
 * Shout out to [totp-rs](https://docs.rs/totp-rs/latest/totp_rs/) for its succinct byte slicing and **Algorithm Enum**; derivations of both were used here [MIT LICENSE](LICENSE)
 
+<HR>
+
+## Examples
 
 ```text
 # Output TOTP, Issuer
