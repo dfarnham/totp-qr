@@ -109,10 +109,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         author,
         version,
         about,
-        long_about = "• Extract \"otpauth://\" from an image and generate the TOTP:\n    $ totp-qr -v my-saved-qr.jpg\n    file = my-saved-qr.jpg\n    otpauth = otpauth://totp/user@site.com?secret=SECRET&issuer=Site&algorithm=SHA1&digits=6&period=30\n    123456, Site\n\n• TOTP from migration accounts:\n    $ totp-qr -a \"otpauth-migration://offline?data=CjMKCkhlbGxvId6tvu8SGFRlc3QxOnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKMwoKSGVsbG8h3q2%2B8BIYVGVzdDI6dGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgozCgpIZWxsbyHerb7xEhhUZXN0Mzp0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAEYASAAKI3orYEE\"\n    947627, Test1\n    958374, Test2\n    882973, Test3"
     )]
     struct Args {
-        /// "otpauth-migration://offline?data=bHVja3kK..." or "otpauth://totp/...?secret=SECRET"
+        /// "otpauth-migration://offline?data=..." or "otpauth://totp/...?secret=SECRET"
         #[arg(short, long)]
         auth: Option<String>,
 

@@ -19,6 +19,18 @@ This tool uses:
 <HR>
 
 ## Examples
+```text
+Usage: totp-qr [OPTIONS] [FILES]...
+
+Arguments:
+  [FILES]...  image-file|stdin, filename of "-" implies stdin
+
+Options:
+  -a, --auth <AUTH>  "otpauth-migration://offline?data=..." or "otpauth://totp/...?secret=SECRET"
+  -v, --verbose      verbose output
+  -h, --help         Print help
+  -V, --version      Print version
+```
 
 ```text
 # Output TOTP, Issuer
