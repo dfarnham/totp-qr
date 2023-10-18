@@ -68,6 +68,6 @@ $> echo 'secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ' | totp-qr
 $> totp-qr < images/otpauth-migration-qr.jpg
 237769, Test1
 734660, Test2
-021109, Test3j
+021109, Test3
 ```
 
