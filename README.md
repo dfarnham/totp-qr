@@ -1,6 +1,6 @@
 # totp-qr &emsp; [![Latest Version]][crates.io]
 
-[Latest Version]: https://img.shields.io/badge/crates.io-v0.1.0-green
+[Latest Version]: https://img.shields.io/badge/crates.io-v0.1.1-green
 [crates.io]: https://crates.io/crates/totp-qr
 
 # Command line utility to extract otpauth strings from QR-images and generate their respective TOTP
