@@ -2,6 +2,7 @@
 authors = ["Dave Farnham <dave.farnham@icloud.com>"]
 description = "Display the optauth URI and TOTP token from QR images, URI, or otpauth-migration link"
 repository = "https://github.com/dfarnham/totp-qr"
+homepage = "https://github.com/dfarnham/totp-qr"
 keywords = ["authentication", "2fa", "totp", "hmac", "otp"]
 categories = ["command-line-utilities"]
 name = "totp-qr"
