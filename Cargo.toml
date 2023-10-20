@@ -20,6 +20,8 @@ hmac = "0.12"
 image = "0.24"
 protobuf = "2.28.0"
 rqrr = "0.6"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 sha1 = "0.10.6"
 sha2 = "0.10.8"
 urlencoding = "2"

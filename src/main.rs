@@ -18,10 +18,29 @@
 //! * Shout out to [totp-rs](https://docs.rs/totp-rs/latest/totp_rs/) for its succinct byte slicing
 //! and `Algorithm Enum`; derivations of both were used. [MIT LICENSE](LICENSE)
 //!
-//! # Examples
-//!
+//! ## Usage
 //! ```text
-//! # Output TOTP, Issuer
+//! Usage: totp-qr [OPTIONS] [FILES]...
+//!
+//! Arguments:
+//!   [FILES]...  image-file|stdin, filename of "-" implies stdin
+//!
+//! Options:
+//!   -a, --auth <AUTH>  "otpauth-migration://offline?data=..." or "otpauth://totp/...?secret=SECRET"
+//!   -v, --verbose      Verbose output
+//!   -e, --extract      Extract account information as JSON
+//!   -i, --import       Import JSON accounts
+//!   -u, --uri          Output extracted URI's
+//!   -h, --help         Print help
+//!   -V, --version      Print version
+//! ```
+//!
+//! ## Examples
+//!
+//! <HR>
+//!
+//! ### Output TOTP, Issuer
+//! ```text
 //! $> totp-qr images/*.jpg
 //! 237769, Test1
 //! 734660, Test2
@@ -29,8 +48,59 @@
 //! 237769, Example
 //! ```
 //!
+//! ### View otpauth URI's
 //! ```text
-//! # Verbose Output
+//! $> totp-qr -u images/*.jpg
+//! otpauth-migration://offline?data=Ci0KCkhlbGxvId6tvu8SEnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKLQoKSGVsbG8h3q2%2B8BISdGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgotCgpIZWxsbyHerb7xEhJ0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAIYASAA
+//! otpauth://totp/Example:alice@google.com?issuer=Example&period=30&secret=JBSWY3DPEHPK3PXP
+//! ```
+//!
+//! ### Extract account details as JSON
+//! ```text
+//! $> totp-qr -e images/*.jpg | jq
+//! [
+//!  {
+//!    "secret": "JBSWY3DPEHPK3PXP",
+//!    "issuer": "Test1",
+//!    "sha": "SHA1",
+//!    "digits": 6,
+//!    "period": 30
+//!  },
+//!  {
+//!    "secret": "JBSWY3DPEHPK3PXQ",
+//!    "issuer": "Test2",
+//!    "sha": "SHA1",
+//!    "digits": 6,
+//!    "period": 30
+//!  },
+//!  {
+//!    "secret": "JBSWY3DPEHPK3PXR",
+//!    "issuer": "Test3",
+//!    "sha": "SHA1",
+//!    "digits": 6,
+//!    "period": 30
+//!  },
+//!  {
+//!    "secret": "JBSWY3DPEHPK3PXP",
+//!    "issuer": "Example",
+//!    "sha": "SHA1",
+//!    "digits": 6,
+//!    "period": 30
+//!  }
+//! ]
+//! ```
+//!
+//! ### Import JSON accounts
+//! ```text
+//! $> totp-qr -e images/*.jpg | totp-qr -iv
+//! 939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Test1", sha: "SHA1", digits: 6, period: 30 }
+//! 561818, Account { secret: "JBSWY3DPEHPK3PXQ", issuer: "Test2", sha: "SHA1", digits: 6, period: 30 }
+//! 787732, Account { secret: "JBSWY3DPEHPK3PXR", issuer: "Test3", sha: "SHA1", digits: 6, period: 30 }
+//! 939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Example", sha: "SHA1", digits: 6, period: 30 }
+//! ```
+//!
+//! ### Verbose Output
+//! ```text
 //! $> totp-qr -v images/*.jpg
 //! otpauth = otpauth-migration://offline?data=Ci0KCkhlbGxvId6tvu8SEnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKLQoKSGVsbG8h3q2%2B8BISdGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgotCgpIZWxsbyHerb7xEhJ0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAIYASAA
 //! 237769, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Test1", sha: "SHA1", digits: 6, period: 30 }
@@ -42,14 +112,14 @@
 //! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //! ```
 //!
+//! ### Input an auth link
 //! ```text
-//! # Input an auth link
 //! $> totp-qr --auth="otpauth://totp/ACME%20Co:john.doe@email.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=ACME%20Co&algorithm=SHA1&digits=6&period=30"
 //! 970700, ACME Co
 //! ```
 //!
+//! ### Decode from stdin
 //! ```text
-//! # Decode from stdin
 //! $> echo 'secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ' | totp-qr
 //! 970700,
 //!
@@ -77,6 +147,7 @@ mod otpauth_migration;
 // derivative:
 // https://docs.rs/totp-rs/latest/totp_rs
 mod totp_token;
+use crate::totp_token::Account;
 
 // Display the TOTP token and Account detail
 fn display_accounts(otpauth: &str, time: Option<u64>, verbose: bool) -> Result<(), Box<dyn Error>> {
@@ -105,19 +176,27 @@ fn display_accounts(otpauth: &str, time: Option<u64>, verbose: bool) -> Result<(
 
 fn main() -> Result<(), Box<dyn Error>> {
     #[derive(Parser, Debug)]
-    #[clap(
-        author,
-        version,
-        about,
-    )]
+    #[clap(author, version, about)]
     struct Args {
         /// "otpauth-migration://offline?data=..." or "otpauth://totp/...?secret=SECRET"
         #[arg(short, long)]
         auth: Option<String>,
 
-        /// verbose output
+        /// Verbose output
         #[arg(short, long)]
         verbose: bool,
+
+        /// Extract account information as JSON
+        #[arg(short, long)]
+        extract: bool,
+
+        /// Import JSON accounts
+        #[arg(short, long)]
+        import: bool,
+
+        /// Output extracted URI's
+        #[arg(short, long)]
+        uri: bool,
 
         /// image-file|stdin, filename of "-" implies stdin
         files: Vec<std::path::PathBuf>,
@@ -126,10 +205,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // ===============================================================
 
+    let mut export_accounts: Vec<Account> = vec![];
+
     // -a, --auth
     if let Some(otpauth) = args.auth {
         let time = None; // SystemTime::now()
-        display_accounts(&otpauth, time, args.verbose)?;
+        if args.uri {
+            println!("{otpauth}");
+        } else if args.extract {
+            export_accounts.extend(totp_token::get_accounts(&otpauth)?);
+            println!("{}", serde_json::to_string(&export_accounts)?);
+        } else {
+            display_accounts(&otpauth, time, args.verbose)?;
+        }
         return Ok(());
     }
 
@@ -157,13 +245,35 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         };
 
+        if args.import {
+            let time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+            let json = std::str::from_utf8(&bytes)?;
+            let accounts: Vec<Account> =
+                serde_json::from_str(json).with_context(|| "serde: Deserializing JSON into Vec<Account>")?;
+            for account in accounts {
+                let token = totp_token::time_token(time, &account)?;
+                if args.verbose {
+                    println!("{token}, {account:?}");
+                } else {
+                    println!("{token}, {}", account.issuer);
+                }
+            }
+            return Ok(());
+        }
+
         // inspect the bytes to classifying as Image or Text
         let format = FileFormat::from_bytes(&bytes);
         if format.kind() != Kind::Image {
             // Text
             for otpauth in std::str::from_utf8(&bytes)?.lines() {
                 let time = None; // SystemTime::now()
-                display_accounts(otpauth, time, args.verbose)?;
+                if args.uri {
+                    println!("{otpauth}");
+                } else if args.extract {
+                    export_accounts.extend(totp_token::get_accounts(otpauth)?);
+                } else {
+                    display_accounts(otpauth, time, args.verbose)?;
+                }
             }
         } else {
             // Image
@@ -184,16 +294,25 @@ fn main() -> Result<(), Box<dyn Error>> {
                     // e.g. otpauth-migration://offline?data=Base-64
                     let (_meta, otpauth) = grids[0].decode()?;
                     let time = None; // SystemTime::now()
-                    display_accounts(&otpauth, time, args.verbose)?;
+                    if args.uri {
+                        println!("{otpauth}");
+                    } else if args.extract {
+                        export_accounts.extend(totp_token::get_accounts(&otpauth)?);
+                    } else {
+                        display_accounts(&otpauth, time, args.verbose)?;
+                    }
                 }
                 grids => eprintln!(
-                    "\n** Error({input_name}) expected 1 image grid, found {} grids **\n",
+                    "Skipping {input_name}, expected 1 image grid, found {} grids",
                     grids.len()
                 ),
             }
         }
     }
 
+    if args.extract && !export_accounts.is_empty() {
+        println!("{}", serde_json::to_string(&export_accounts)?);
+    }
     Ok(())
 }
 

@@ -1,5 +1,6 @@
 use crate::otpauth_migration;
 use hmac::{Hmac, Mac};
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 
 // Create aliases
@@ -37,7 +38,7 @@ impl Algorithm {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct Account {
     pub secret: String,
     pub issuer: String,
@@ -65,7 +66,7 @@ pub fn get_accounts(otpauth: &str) -> Result<Vec<Account>, Box<dyn Error>> {
         true => otpauth_migration::get_accounts(otpauth),
         false => {
             // Secret -- required
-            let secret = uri_param(otpauth, "secret=").ok_or("account_data(): missing secret")?;
+            let secret = uri_param(otpauth, "secret=").ok_or(format!("missing secret, otpauth = {otpauth}"))?;
 
             // Issuer -- default ""
             let issuer = uri_param(otpauth, "issuer=").unwrap_or_default();
