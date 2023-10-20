@@ -46,6 +46,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ...
 ```
 
+<HR>
+<HR>
+
 ## Using totp-qr in a shell function to view tokens
 
 1. Install `totp-qr` e.g. `cargo install totp-qr` or build e.g. `cargo install --path .`
