@@ -193,14 +193,6 @@ enter AES-256-CBC decryption password:
   }
 ]
 ```
-### Import JSON accounts
-```text
-$> totp-qr -e images/*.jpg | totp-qr -iv
-939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Test1", sha: "SHA1", digits: 6, period: 30 }
-561818, Account { secret: "JBSWY3DPEHPK3PXQ", issuer: "Test2", sha: "SHA1", digits: 6, period: 30 }
-787732, Account { secret: "JBSWY3DPEHPK3PXR", issuer: "Test3", sha: "SHA1", digits: 6, period: 30 }
-939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Example", sha: "SHA1", digits: 6, period: 30 }
-```
 ### View URI's
 ```text
 $> totp -u
@@ -257,4 +249,13 @@ $> totp-qr < images/otpauth-migration-qr.jpg
 734660, Test2
 021109, Test3
 ```
+### Import JSON accounts
+```text
+$> totp-qr -e images/*.jpg | totp-qr -iv
+939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Test1", sha: "SHA1", digits: 6, period: 30 }
+561818, Account { secret: "JBSWY3DPEHPK3PXQ", issuer: "Test2", sha: "SHA1", digits: 6, period: 30 }
+787732, Account { secret: "JBSWY3DPEHPK3PXR", issuer: "Test3", sha: "SHA1", digits: 6, period: 30 }
+939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Example", sha: "SHA1", digits: 6, period: 30 }
+```
+
 
