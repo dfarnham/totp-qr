@@ -148,7 +148,7 @@ EOF
 
 ### Note: If you're on a Mac using [iTerm2](https://iterm2.com/) check out [password manager](https://iterm2.com/features.html) (shortcut: ⌥ ⌘ F) for supplying passwords
 
-### I use the totp() bash function like this:
+### The totp() bash function displays all tokens
 ```text
 $> totp
 enter AES-256-CBC decryption password:
@@ -204,7 +204,7 @@ otpauth://totp/Example:alice@google.com?issuer=Example&period=30&secret=JBSWY3DP
 <HR>
 <HR>
 
-## Usage
+## General Usage
 ```text
 $> totp-qr -h
 Usage: totp-qr [OPTIONS] [FILES]...
@@ -249,7 +249,7 @@ $> totp-qr < images/otpauth-migration-qr.jpg
 734660, Test2
 021109, Test3
 ```
-### Import JSON accounts
+### Extract/Import JSON account data
 ```text
 $> totp-qr -e images/*.jpg | totp-qr -iv
 939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Test1", sha: "SHA1", digits: 6, period: 30 }
