@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 # TOTP-QR
 
-## Using totp-qr in a shell function to view tokens
+## Using totp-qr in a shell function to securely view tokens
 
 1. Install `totp-qr` e.g. `cargo install totp-qr` or build e.g. `cargo install --path .`
 2. Gather your QR-images into a directory
@@ -90,7 +90,7 @@ $> totp-qr --uri images/* | totp-qr
 276913, Test3
 083403, Example
 ```
-### otpauth strings (and images) need to be kept PRIVATE, they contain the SECRET. I'm using [openssl](https://www.openssl.org/) to encrypt the otpauth strings for use in my .bashrc
+### otpauth strings (and images) need to be kept PRIVATE, they contain the SECRET. [OpenSSL](https://www.openssl.org/) can be used to encrypt the otpauth strings
 ```text
 ##############################################################
 # ** The password shown below "foo" is not actually visible **
@@ -146,7 +146,7 @@ EOF
 }
 ```
 
-### Note: If you're on a Mac using [iTerm2](https://iterm2.com/) I love the built in password manager which integrates with your Keychain and makes pasting in passwords (hotkeys: ⌥ ⌘ F) a breeze.
+### Note: If you're on a Mac using [iTerm2](https://iterm2.com/) check out [password manager](https://iterm2.com/features.html) (shortcut: ⌥ ⌘ F) for supplying passwords
 
 ### I use the totp() bash function like this:
 ```text
