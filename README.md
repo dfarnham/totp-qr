@@ -186,7 +186,6 @@ otpauth://totp/Example:alice@google.com?issuer=Example&period=30&secret=JBSWY3DP
 
 ## General Usage
 ```text
-$> totp-qr -h
 Usage: totp-qr [OPTIONS] [FILES]...
 
 Arguments:
