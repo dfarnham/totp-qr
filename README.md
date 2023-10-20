@@ -195,7 +195,7 @@ Arguments:
 Options:
   -a, --auth <AUTH>  "otpauth-migration://offline?data=..." or "otpauth://totp/...?secret=SECRET"
   -v, --verbose      Verbose output
-  -e, --extract      Extract account information as JSON
+  -e, --export       Export account information as JSON
   -i, --import       Import JSON accounts
   -u, --uri          Output extracted URI's
   -h, --help         Print help

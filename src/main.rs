@@ -196,7 +196,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         /// Export account information as JSON
         #[arg(short, long)]
-        extract: bool,
+        export: bool,
 
         /// Import JSON accounts
         #[arg(short, long)]
@@ -288,7 +288,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         for otpauth in accounts.keys() {
             println!("{otpauth}");
         }
-    } else if args.extract {
+    } else if args.export {
         let acc: Vec<_> = accounts.values().flatten().collect();
         println!("{}", serde_json::to_string(&acc)?);
     } else {
