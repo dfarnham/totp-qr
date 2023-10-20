@@ -49,6 +49,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 <HR>
 <HR>
 
+# TOTP-QR
+
 ## Using totp-qr in a shell function to view tokens
 
 1. Install `totp-qr` e.g. `cargo install totp-qr` or build e.g. `cargo install --path .`
@@ -125,8 +127,10 @@ PPJXNNa5fQP647srICuCnw==
 EOF
 }
 ```
+
 <HR>
 <HR>
+
 ### Putting it all together
 ```text
 $> ./scripts/mk-totp-func.sh images/ >> ~/.bashrc
@@ -204,8 +208,10 @@ enter AES-256-CBC decryption password:
 otpauth-migration://offline?data=Ci0KCkhlbGxvId6tvu8SEnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKLQoKSGVsbG8h3q2%2B8BISdGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgotCgpIZWxsbyHerb7xEhJ0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAIYASAA
 otpauth://totp/Example:alice@google.com?issuer=Example&period=30&secret=JBSWY3DPEHPK3PXP
 ```
+
 <HR>
 <HR>
+
 ## Usage
 ```text
 $> totp-qr -h
