@@ -22,7 +22,8 @@ This tool uses:
 
 ### Project Status:
 * Option logic is ugly after adding -i,-e,-u; that'll get refactored next.
-* Waiting for resolution on [SIGPIPE](https://github.com/rust-lang/rust/issues/62569) and general CLI Unix tools to avoid "broken pipe". ( println!() => writeln!(stdout)? )
+* Waiting for resolution on [SIGPIPE](https://github.com/rust-lang/rust/issues/62569) and general CLI Unix tools to avoid "broken pipe".
+* The rememdy is to change println!() to writeln!(stdout)? as shown below
 
 ```text
 pub fn reset_sigpipe() -> Result<(), Box<dyn std::error::Error>> {
