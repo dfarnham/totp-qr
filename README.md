@@ -1,6 +1,6 @@
 # totp-qr &emsp; [![Latest Version]][crates.io]
 
-[Latest Version]: https://img.shields.io/badge/crates.io-v0.1.1-green
+[Latest Version]: https://img.shields.io/badge/crates.io-v0.2.0-green
 [crates.io]: https://crates.io/crates/totp-qr
 
 # Command line utility to extract otpauth strings from QR-images and generate their respective TOTP
@@ -21,8 +21,7 @@ This tool uses:
 <HR>
 
 ### Project Status:
-* Option logic is ugly after adding -i,-e,-u; that'll get refactored next.
-* Waiting for resolution on [SIGPIPE](https://github.com/rust-lang/rust/issues/62569) and general CLI Unix tools to avoid "broken pipe".
+* Waiting for resolution on [SIGPIPE](https://github.com/rust-lang/rust/issues/62569) for general CLI Unix tools to avoid "broken pipe".
 * The rememdy is to change println!() to writeln!(stdout)? as shown below
 
 ```text
@@ -62,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Creating the shell function, walk-through
 
-### The images directory contains 2 example QRs with encoded otpauth data
+### The images directory contains 2 example QRs
 
 1. **otpauth-totp-qr.jpg holds 1 account: "otpauth://totp/..."**
 2. **otpauth-migration-qr.jpg holds 3 accounts: "otpauth-migration://offline?data=..."**
@@ -74,30 +73,11 @@ otpauth://totp/Example:alice@google.com?issuer=Example&period=30&secret=JBSWY3DP
 $> totp-qr --uri images/otpauth-migration-qr.jpg
 otpauth-migration://offline?data=Ci0KCkhlbGxvId6tvu8SEnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKLQoKSGVsbG8h3q2%2B8BISdGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgotCgpIZWxsbyHerb7xEhJ0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAIYASAA
 ```
-### totp-qr can generate TOTP tokens directly off images but that's not practical
+### otpauth data should be kept PRIVATE, [OpenSSL](https://www.openssl.org/) can be used to encrypt the data (password: foo)
 ```text
-$> totp-qr images/*
-083403, Test1
-838914, Test2
-276913, Test3
-083403, Example
-```
-### otpauth strings hold secrets and algorithm parameters which can be used directly
-```text
-$> totp-qr --uri images/* | totp-qr
-083403, Test1
-838914, Test2
-276913, Test3
-083403, Example
-```
-### otpauth strings (and images) need to be kept PRIVATE, they contain the SECRET. [OpenSSL](https://www.openssl.org/) can be used to encrypt the otpauth strings
-```text
-##############################################################
-# ** The password shown below "foo" is not actually visible **
-##############################################################
 $> totp-qr --uri images/* | openssl aes-256-cbc -e -pbkdf2 -a
-enter AES-256-CBC encryption password:foo
-Verifying - enter AES-256-CBC encryption password:foo
+enter AES-256-CBC encryption password:
+Verifying - enter AES-256-CBC encryption password:
 
 U2FsdGVkX18lfKZ20uQn/AcAWa85hUmcJzQ8mvS9JX0BJb7qVDddrCjbjPxagIw6
 hwHeLBPWx1U0GbA7zszAYKNa6FB2I53ldNET/tnutUBNmQeuxqbiVH8A0or9Ni8+
@@ -108,7 +88,7 @@ T+DwgtEyCO5ZhQPn3nj9E1Gy1xXAm+4Yt8CueXvuBS5SJJLQd94Q+HT1SsyMhYB0
 FGVb6YifAjV3Snsk3UO/60quJ8cfQxjDW5Pef/a0LjtMZL2d+jaYImFcLEMUrnlI
 FRGDcbHR1oAmdonyuSNJBQ==
 ```
-### [scripts/mk-totp-func.sh](scripts/mk-totp-func.sh) automates the creation of a Bash function named totp()
+### [scripts/mk-totp-func.sh](scripts/mk-totp-func.sh) encrypts URI's and outputs a Bash function named totp()
 ```text
 $> ./scripts/mk-totp-func.sh images/
 enter AES-256-CBC encryption password:
@@ -148,7 +128,7 @@ EOF
 
 ### Note: If you're on a Mac using [iTerm2](https://iterm2.com/) check out [password manager](https://iterm2.com/features.html) (shortcut: ⌥ ⌘ F) for supplying passwords
 
-### The totp() bash function displays all tokens
+### totp() displays tokens sorted by issuer
 ```text
 $> totp
 enter AES-256-CBC decryption password:
@@ -158,7 +138,7 @@ enter AES-256-CBC decryption password:
 476239, Test3
 ```
 
-### View account details as JSON
+### totp -e to view account details as JSON
 ```text
 $> totp -e | jq
 enter AES-256-CBC decryption password:
@@ -193,7 +173,7 @@ enter AES-256-CBC decryption password:
   }
 ]
 ```
-### View URI's
+### totp -u to view URI's
 ```text
 $> totp -u
 enter AES-256-CBC decryption password:
@@ -222,7 +202,7 @@ Options:
   -V, --version      Print version
 ```
 
-### Verbose Output
+### Verbose Output (-v, --verbose)
 ```text
 $> totp-qr -v images/*.jpg
 otpauth = otpauth-migration://offline?data=Ci0KCkhlbGxvId6tvu8SEnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKLQoKSGVsbG8h3q2%2B8BISdGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgotCgpIZWxsbyHerb7xEhJ0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAIYASAA
@@ -234,7 +214,7 @@ otpauth = otpauth://totp/Example:alice@google.com?issuer=Example&period=30&secre
 237769, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Example", sha: "SHA1", digits: 6, period: 30 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ```
-### Input an auth link
+### Auth link (-a, --auth)
 ```text
 $> totp-qr --auth="otpauth://totp/ACME%20Co:john.doe@email.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=ACME%20Co&algorithm=SHA1&digits=6&period=30"
 970700, ACME Co
@@ -249,7 +229,7 @@ $> totp-qr < images/otpauth-migration-qr.jpg
 734660, Test2
 021109, Test3
 ```
-### Extract/Import JSON account data
+### Import (-i, --import) / export (-e, --export) JSON Accounts
 ```text
 $> totp-qr -e images/*.jpg | totp-qr -iv
 939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Test1", sha: "SHA1", digits: 6, period: 30 }

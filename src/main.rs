@@ -28,9 +28,9 @@
 //! Options:
 //!   -a, --auth <AUTH>  "otpauth-migration://offline?data=..." or "otpauth://totp/...?secret=SECRET"
 //!   -v, --verbose      Verbose output
-//!   -e, --extract      Extract account information as JSON
+//!   -e, --export       Export account information as JSON
 //!   -i, --import       Import JSON accounts
-//!   -u, --uri          Output extracted URI's
+//!   -u, --uri          Output account URI's
 //!   -h, --help         Print help
 //!   -V, --version      Print version
 //! ```
@@ -39,7 +39,7 @@
 //!
 //! <HR>
 //!
-//! ### Output TOTP, Issuer
+//! ### TOTP, Issuer
 //! ```text
 //! $> totp-qr images/*.jpg
 //! 237769, Test1
@@ -48,14 +48,14 @@
 //! 237769, Example
 //! ```
 //!
-//! ### View otpauth URI's
+//! ### otpauth URI's
 //! ```text
 //! $> totp-qr -u images/*.jpg
 //! otpauth-migration://offline?data=Ci0KCkhlbGxvId6tvu8SEnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKLQoKSGVsbG8h3q2%2B8BISdGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgotCgpIZWxsbyHerb7xEhJ0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAIYASAA
 //! otpauth://totp/Example:alice@google.com?issuer=Example&period=30&secret=JBSWY3DPEHPK3PXP
 //! ```
 //!
-//! ### Extract account details as JSON
+//! ### Account information as JSON
 //! ```text
 //! $> totp-qr -e images/*.jpg | jq
 //! [
@@ -134,6 +134,7 @@ use clap::Parser;
 use file_format::{FileFormat, Kind};
 use image::io::Reader as ImageReader;
 use rqrr::PreparedImage;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::{self, Cursor, Read};
@@ -150,25 +151,32 @@ mod totp_token;
 use crate::totp_token::Account;
 
 // Display the TOTP token and Account detail
-fn display_accounts(otpauth: &str, time: Option<u64>, verbose: bool) -> Result<(), Box<dyn Error>> {
+//fn display_accounts(accounts: &[Account], time: Option<u64>, verbose: bool) -> Result<(), Box<dyn Error>> {
+fn display_accounts(
+    otpauths: &HashMap<String, Vec<Account>>,
+    time: Option<u64>,
+    verbose: bool,
+) -> Result<(), Box<dyn Error>> {
     let time = match time {
         Some(time) => time,
         None => SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
     };
 
-    if verbose {
-        println!("otpauth = {otpauth}");
-    }
-    for account in totp_token::get_accounts(otpauth)? {
-        let token = totp_token::time_token(time, &account)?;
-        if verbose {
-            println!("{token}, {account:?}");
-        } else {
-            println!("{token}, {}", account.issuer);
+    for (otpauth, accounts) in otpauths.iter() {
+        if verbose && otpauth.starts_with("otpauth") {
+            println!("otpauth = {otpauth}");
         }
-    }
-    if verbose {
-        println!("{:~^40}", "");
+        for account in accounts {
+            let token = totp_token::time_token(time, account)?;
+            if verbose {
+                println!("{token}, {account:?}");
+            } else {
+                println!("{token}, {}", account.issuer);
+            }
+        }
+        if verbose {
+            println!("{:~^40}", "");
+        }
     }
 
     Ok(())
@@ -186,7 +194,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         #[arg(short, long)]
         verbose: bool,
 
-        /// Extract account information as JSON
+        /// Export account information as JSON
         #[arg(short, long)]
         extract: bool,
 
@@ -194,7 +202,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         #[arg(short, long)]
         import: bool,
 
-        /// Output extracted URI's
+        /// Output account URI's
         #[arg(short, long)]
         uri: bool,
 
@@ -205,114 +213,89 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // ===============================================================
 
-    let mut export_accounts: Vec<Account> = vec![];
-
-    // -a, --auth
-    if let Some(otpauth) = args.auth {
-        let time = None; // SystemTime::now()
-        if args.uri {
-            println!("{otpauth}");
-        } else if args.extract {
-            export_accounts.extend(totp_token::get_accounts(&otpauth)?);
-            println!("{}", serde_json::to_string(&export_accounts)?);
-        } else {
-            display_accounts(&otpauth, time, args.verbose)?;
-        }
-        return Ok(());
-    }
+    let mut accounts: HashMap<String, Vec<Account>> = HashMap::new();
 
     let files = match args.files.is_empty() {
         true => vec![std::path::PathBuf::from("-")],
         false => args.files,
     };
 
-    for file in files {
-        // Read stdin|file into a byte buffer, note a filename of "-" implies stdin
-        let mut bytes = vec![];
-        let input_name: String = match file.as_os_str() != "-" {
-            true => {
-                File::open(&file)
-                    .with_context(|| format!("could not open file `{:?}`", file.as_os_str()))?
-                    .read_to_end(&mut bytes)
-                    .with_context(|| format!("could not read file `{:?}`", file.as_os_str()))?;
-                file.to_string_lossy().into()
-            }
-            false => {
-                io::stdin()
-                    .read_to_end(&mut bytes)
-                    .with_context(|| "could not read `stdin`")?;
-                "<stdin>".into()
-            }
-        };
-
-        if args.import {
-            let time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-            let json = std::str::from_utf8(&bytes)?;
-            let accounts: Vec<Account> =
-                serde_json::from_str(json).with_context(|| "serde: Deserializing JSON into Vec<Account>")?;
-            for account in accounts {
-                let token = totp_token::time_token(time, &account)?;
-                if args.verbose {
-                    println!("{token}, {account:?}");
-                } else {
-                    println!("{token}, {}", account.issuer);
+    if let Some(otpauth) = args.auth {
+        accounts.insert(otpauth.clone(), totp_token::get_accounts(&otpauth)?);
+    } else {
+        for file in files {
+            // Read stdin|file into a byte buffer, note a filename of "-" implies stdin
+            let mut bytes = vec![];
+            let input_name: String = match file.as_os_str() != "-" {
+                true => {
+                    File::open(&file)
+                        .with_context(|| format!("could not open file `{:?}`", file.as_os_str()))?
+                        .read_to_end(&mut bytes)
+                        .with_context(|| format!("could not read file `{:?}`", file.as_os_str()))?;
+                    file.to_string_lossy().into()
                 }
-            }
-            return Ok(());
-        }
-
-        // inspect the bytes to classifying as Image or Text
-        let format = FileFormat::from_bytes(&bytes);
-        if format.kind() != Kind::Image {
-            // Text
-            for otpauth in std::str::from_utf8(&bytes)?.lines() {
-                let time = None; // SystemTime::now()
-                if args.uri {
-                    println!("{otpauth}");
-                } else if args.extract {
-                    export_accounts.extend(totp_token::get_accounts(otpauth)?);
-                } else {
-                    display_accounts(otpauth, time, args.verbose)?;
+                false => {
+                    io::stdin()
+                        .read_to_end(&mut bytes)
+                        .with_context(|| "could not read `stdin`")?;
+                    "<stdin>".into()
                 }
-            }
-        } else {
-            // Image
-            // Detect the image format and decode the bytes into a Luma image
-            let img = ImageReader::new(Cursor::new(bytes))
-                .with_guessed_format()?
-                .decode()?
-                .to_luma8();
+            };
 
-            // Prepare for detection
-            let mut img = PreparedImage::prepare(img);
+            if args.import {
+                let json = std::str::from_utf8(&bytes)?;
+                let imported_accounts: Vec<Account> =
+                    serde_json::from_str(json).with_context(|| "serde: Deserializing JSON into Vec<Account>")?;
+                accounts.insert(json.into(), imported_accounts);
+            } else {
+                // inspect the bytes to classifying as Image or Text
+                let format = FileFormat::from_bytes(&bytes);
+                if format.kind() != Kind::Image {
+                    for otpauth in std::str::from_utf8(&bytes)?.lines() {
+                        accounts.insert(otpauth.into(), totp_token::get_accounts(otpauth)?);
+                    }
+                } else {
+                    // Image
+                    // Detect the image format and decode the bytes into a Luma image
+                    let img = ImageReader::new(Cursor::new(bytes))
+                        .with_guessed_format()?
+                        .decode()?
+                        .to_luma8();
 
-            // Search for grids, without decoding
-            match img.detect_grids() {
-                grids if grids.len() == 1 => {
-                    // Decode the grid and obtain the otpauth string
-                    // e.g. otpauth://totp/Site:User?Secret=Base-32&period=30&digits=6&issuer=SiteName
-                    // e.g. otpauth-migration://offline?data=Base-64
-                    let (_meta, otpauth) = grids[0].decode()?;
-                    let time = None; // SystemTime::now()
-                    if args.uri {
-                        println!("{otpauth}");
-                    } else if args.extract {
-                        export_accounts.extend(totp_token::get_accounts(&otpauth)?);
-                    } else {
-                        display_accounts(&otpauth, time, args.verbose)?;
+                    // Prepare for detection
+                    let mut img = PreparedImage::prepare(img);
+
+                    // Search for grids, without decoding
+                    match img.detect_grids() {
+                        grids if grids.len() == 1 => {
+                            // Decode the grid and obtain the otpauth string
+                            // e.g. otpauth://totp/Site:User?Secret=Base-32&period=30&digits=6&issuer=SiteName
+                            // e.g. otpauth-migration://offline?data=Base-64
+                            let (_meta, otpauth) = grids[0].decode()?;
+                            accounts.insert(otpauth.clone(), totp_token::get_accounts(&otpauth)?);
+                        }
+                        grids => eprintln!(
+                            "Skipping {input_name}, expected 1 image grid, found {} grids",
+                            grids.len()
+                        ),
                     }
                 }
-                grids => eprintln!(
-                    "Skipping {input_name}, expected 1 image grid, found {} grids",
-                    grids.len()
-                ),
             }
         }
     }
 
-    if args.extract && !export_accounts.is_empty() {
-        println!("{}", serde_json::to_string(&export_accounts)?);
+    if args.uri {
+        for otpauth in accounts.keys() {
+            println!("{otpauth}");
+        }
+    } else if args.extract {
+        let acc: Vec<_> = accounts.values().flatten().collect();
+        println!("{}", serde_json::to_string(&acc)?);
+    } else {
+        let time = None;
+        display_accounts(&accounts, time, args.verbose)?;
     }
+
     Ok(())
 }
 
@@ -393,6 +376,78 @@ mod tests {
             let token = totp_token::time_token(time + second, &accounts[2])?;
             assert_eq!(token, "236718");
         }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_export_json() -> Result<(), Box<dyn Error>> {
+        let otpauth = "otpauth-migration://offline?data=Ci0KCkhlbGxvId6tvu8SEnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKLQoKSGVsbG8h3q2%2B8BISdGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgotCgpIZWxsbyHerb7xEhJ0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAIYASAA";
+        let json = r#"[{"secret":"JBSWY3DPEHPK3PXP","issuer":"Test1","sha":"SHA1","digits":6,"period":30},{"secret":"JBSWY3DPEHPK3PXQ","issuer":"Test2","sha":"SHA1","digits":6,"period":30},{"secret":"JBSWY3DPEHPK3PXR","issuer":"Test3","sha":"SHA1","digits":6,"period":30}]"#;
+        let accounts = totp_token::get_accounts(otpauth)?;
+
+        assert_eq!(
+            accounts,
+            [
+                Account {
+                    secret: "JBSWY3DPEHPK3PXP".to_string(),
+                    issuer: "Test1".to_string(),
+                    sha: "SHA1".to_string(),
+                    digits: 6,
+                    period: 30
+                },
+                Account {
+                    secret: "JBSWY3DPEHPK3PXQ".to_string(),
+                    issuer: "Test2".to_string(),
+                    sha: "SHA1".to_string(),
+                    digits: 6,
+                    period: 30
+                },
+                Account {
+                    secret: "JBSWY3DPEHPK3PXR".to_string(),
+                    issuer: "Test3".to_string(),
+                    sha: "SHA1".to_string(),
+                    digits: 6,
+                    period: 30
+                }
+            ]
+        );
+        assert_eq!(json, serde_json::to_string(&accounts)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_import_json() -> Result<(), Box<dyn Error>> {
+        let json = r#"[{"secret":"JBSWY3DPEHPK3PXP","issuer":"Test1","sha":"SHA1","digits":6,"period":30},{"secret":"JBSWY3DPEHPK3PXQ","issuer":"Test2","sha":"SHA1","digits":6,"period":30},{"secret":"JBSWY3DPEHPK3PXR","issuer":"Test3","sha":"SHA1","digits":6,"period":30}]"#;
+        let accounts: Vec<Account> = serde_json::from_str(json)?;
+
+        assert_eq!(
+            accounts,
+            [
+                Account {
+                    secret: "JBSWY3DPEHPK3PXP".to_string(),
+                    issuer: "Test1".to_string(),
+                    sha: "SHA1".to_string(),
+                    digits: 6,
+                    period: 30
+                },
+                Account {
+                    secret: "JBSWY3DPEHPK3PXQ".to_string(),
+                    issuer: "Test2".to_string(),
+                    sha: "SHA1".to_string(),
+                    digits: 6,
+                    period: 30
+                },
+                Account {
+                    secret: "JBSWY3DPEHPK3PXR".to_string(),
+                    issuer: "Test3".to_string(),
+                    sha: "SHA1".to_string(),
+                    digits: 6,
+                    period: 30
+                }
+            ]
+        );
 
         Ok(())
     }

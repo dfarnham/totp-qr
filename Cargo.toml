@@ -7,7 +7,7 @@ keywords = ["authentication", "2fa", "totp", "hmac", "otp"]
 categories = ["command-line-utilities"]
 name = "totp-qr"
 license = "MIT"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
