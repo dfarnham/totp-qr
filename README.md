@@ -6,8 +6,6 @@ Why? I need the text SECRET encoded in previously saved QR images, screenshots, 
 
 The motivation for this project was initiated by password housekeeping. I'm content with the tools I use for password management such as [KeePassXC](https://keepassxc.org), [pass](https://www.passwordstore.org/), [iTerm2 Password Manager](https://iterm2.com/features.html) (can't live without now), but I lacked visibility and portability of my TOTP parameters and passwords.
 
-Mainly I need the SECRET because it's mine, I like CLI, and tools like this might make someone else's day brighter.
-
 This tool uses:
 
 * The excellent [rqrr crate](https://docs.rs/rqrr/latest/rqrr/) for digging out otpauth data from most image types
@@ -19,7 +17,7 @@ This tool uses:
 
 ### Project Status:
 * Waiting for resolution on [SIGPIPE](https://github.com/rust-lang/rust/issues/62569) for general CLI Unix tools to avoid "broken pipe".
-* The rememdy is to change println!() to writeln!(stdout)? as shown below
+* The remedy is to modify stdout and use writeln!(stdout)? instead of println!() as shown below
 
 ```text
 pub fn reset_sigpipe() -> Result<(), Box<dyn std::error::Error>> {
@@ -49,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Using totp-qr in a shell function to securely view tokens
 
-1. Install `totp-qr` e.g. `cargo install totp-qr` or build e.g. `cargo install --path .`
+1. Install `totp-qr` e.g. `cargo install totp-qr` or build `cargo install --path .`
 2. Gather your QR-images into a directory
 3. Run `scripts/mk-totp-func.sh directory`
 4. Inspect, copy, and add to your ~/.bashrc
@@ -60,8 +58,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### The images directory contains 2 example QRs
 
-1. **otpauth-totp-qr.jpg holds 1 account: "otpauth://totp/..."**
-2. **otpauth-migration-qr.jpg holds 3 accounts: "otpauth-migration://offline?data=..."**
+1. **otpauth-totp-qr.jpg** holds 1 account: "otpauth://totp/..."
+2. **otpauth-migration-qr.jpg** holds 3 accounts: "otpauth-migration://offline?data=..."
 
 ```text
 $> totp-qr --uri images/otpauth-totp-qr.jpg
@@ -123,7 +121,7 @@ EOF
 }
 ```
 
-### Note: If you're on a Mac using [iTerm2](https://iterm2.com/) check out [password manager](https://iterm2.com/features.html) (shortcut: ⌥ ⌘ F) for supplying passwords
+### Tip: If you're on a Mac using [iTerm2](https://iterm2.com/) check out [password manager](https://iterm2.com/features.html) (shortcut: ⌥ ⌘ F) for supplying passwords
 
 ### totp() displays tokens sorted by issuer
 ```text
