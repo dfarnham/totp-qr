@@ -2,8 +2,9 @@
 //!
 //! ### Command line utility to extract otpauth strings from QR-images and generate their respective TOTP
 //!
-//! `Why?` I need the text SECRET encoded in previously saved QR images, screenshots, and Google Authenticator
-//! Export images for import into other apps [KeePassXC](https://keepassxc.org), [Proton Pass](https://proton.me/pass)
+//! Why? I need the text SECRET encoded in previously saved QR images, screenshots, and Google Authenticator Export images for import into other apps [KeePassXC](https://keepassxc.org), [Proton Pass](https://proton.me/pass)
+//!
+//! The motivation for this project was initiated by password housekeeping. I'm content with the tools I use for password management such as [KeePassXC](https://keepassxc.org), [pass](https://www.passwordstore.org/), [iTerm2 Password Manager](https://iterm2.com/features.html) (can't live without now), but I lacked visibility and portability of my TOTP parameters and passwords.
 //!
 //! Mainly I need the SECRET because it's mine, I like CLI, and tools like this might make someone else's day brighter.
 //!
@@ -18,7 +19,169 @@
 //! * Shout out to [totp-rs](https://docs.rs/totp-rs/latest/totp_rs/) for its succinct byte slicing
 //! and `Algorithm Enum`; derivations of both were used. [MIT LICENSE](LICENSE)
 //!
-//! ## Usage
+//! ## Project Status:
+//!
+//! * Waiting for resolution on [SIGPIPE](https://github.com/rust-lang/rust/issues/62569) for general CLI Unix tools to avoid "broken pipe".
+//! * The rememdy is to change println!() to writeln!(stdout)? as shown below
+//!
+//! ```text
+//! pub fn reset_sigpipe() -> Result<(), Box<dyn std::error::Error>> {
+//!     #[cfg(target_family = "unix")]
+//!     {
+//!         use nix::sys::signal;
+//!
+//!         unsafe {
+//!             signal::signal(signal::Signal::SIGPIPE, signal::SigHandler::SigDfl)?;
+//!         }
+//!     }
+//!
+//!     Ok(())
+//! }
+//!
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // behave like a typical unix utility
+//!     general::reset_sigpipe()?;
+//!     let mut stdout = io::stdout().lock();
+//! ```
+//!
+//! <HR>
+//! <HR>
+//!
+//! # TOTP-QR
+//!
+//! ## Using totp-qr in a shell function to securely view tokens
+//!
+//! 1. Install `totp-qr` e.g. `cargo install totp-qr` or build e.g. `cargo install --path .`
+//! 2. Gather your QR-images into a directory
+//! 3. Run `scripts/mk-totp-func.sh directory`
+//! 4. Inspect, copy, and add to your ~/.bashrc
+//!
+//! <HR>
+//!
+//! # Creating the shell function, walk-through
+//!
+//! ### The images directory contains 2 example QRs
+//!
+//! 1. **otpauth-totp-qr.jpg holds 1 account: "otpauth://totp/..."**
+//! 2. **otpauth-migration-qr.jpg holds 3 accounts: "otpauth-migration://offline?data=..."**
+//!
+//! ```text
+//! $> totp-qr --uri images/otpauth-totp-qr.jpg
+//! otpauth://totp/Example:alice@google.com?issuer=Example&period=30&secret=JBSWY3DPEHPK3PXP
+//!
+//! $> totp-qr --uri images/otpauth-migration-qr.jpg
+//! otpauth-migration://offline?data=Ci0KCkhlbGxvId6tvu8SEnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKLQoKSGVsbG8h3q2%2B8BISdGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgotCgpIZWxsbyHerb7xEhJ0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAIYASAA
+//! ```
+//! ### otpauth data should be kept PRIVATE, [OpenSSL](https://www.openssl.org/) can be used to encrypt the data (password: foo)
+//! ```text
+//! $> totp-qr --uri images/* | openssl aes-256-cbc -e -pbkdf2 -a
+//! enter AES-256-CBC encryption password:
+//! Verifying - enter AES-256-CBC encryption password:
+//!
+//! U2FsdGVkX18lfKZ20uQn/AcAWa85hUmcJzQ8mvS9JX0BJb7qVDddrCjbjPxagIw6
+//! hwHeLBPWx1U0GbA7zszAYKNa6FB2I53ldNET/tnutUBNmQeuxqbiVH8A0or9Ni8+
+//! Lj8onivfmaGzcBGGGMtz3wliD/LL+iUhkG+A2FZpIE2mIf9QdwofI9jSAhDhAW3y
+//! d+AXZWWsHRRVs5MvIA++CcchKLG+FOza3fcBIt7RtqkdISQYDw+TgMGLN8NS5/ak
+//! tk8PcuO+QfjmtNXh0/96mn5jYCGdD1NvioeDkwBu7883q2ChHXcOLRuPqqlJAR/2
+//! T+DwgtEyCO5ZhQPn3nj9E1Gy1xXAm+4Yt8CueXvuBS5SJJLQd94Q+HT1SsyMhYB0
+//! FGVb6YifAjV3Snsk3UO/60quJ8cfQxjDW5Pef/a0LjtMZL2d+jaYImFcLEMUrnlI
+//! FRGDcbHR1oAmdonyuSNJBQ==
+//! ```
+//! ### [scripts/mk-totp-func.sh](scripts/mk-totp-func.sh) encrypts URI's and outputs a Bash function named totp()
+//! ```text
+//! $> ./scripts/mk-totp-func.sh images/
+//! enter AES-256-CBC encryption password:
+//! Verifying - enter AES-256-CBC encryption password:
+//!
+//! totp() {
+//! openssl aes-256-cbc -d -pbkdf2 -a << EOF | totp-qr $1 | sort -t, -k2
+//! U2FsdGVkX1+gVAFEnnQVFQVmzDUU47Sl6NIqFOAQaM85dspvn8gt2hueK272RRi4
+//! vdWDBLsFeKM4qp7Jq2TSV2Lca2/29cwPcZtAVnaz02VbxO2m/e3b4RjB9AxjRk1R
+//! iTPdTzG+BO2GYHjdz515Dc/N4+HD5UMVJr7yAsypdJ/ThRN3CWCjUYd3mAGx9/g7
+//! 0GCwTJ6psw4CtwbgL3hg66cZq9w43Wwj0P+S3eL87ueZRHHfr10hEtLTsJQLuRDl
+//! 479WZpzFFPTyrr3jVQFMqmhgEXKXf2VnFp4aLvCk6OKP93iQU3fE5aRWTEpQytYF
+//! +F/AvpAQUnEOvAAivFFa2SBXZPHDscENzG16P0O8i3hWoyJizoAJIOMOPsA3HgMZ
+//! 1kxCFBnME1Pd1dlrSTsfhFNpjfbaURWxI5pwMS/fAKMIoRLWydeGJOukNIv+zPmI
+//! PPJXNNa5fQP647srICuCnw==
+//! EOF
+//! }
+//! ```
+//!
+//! <HR>
+//! <HR>
+//!
+//! ### Putting it all together
+//! ```text
+//! $> ./scripts/mk-totp-func.sh images/ >> ~/.bashrc
+//! $> . ~/.bashrc
+//! $> type -a totp
+//! totp is a function
+//! totp ()
+//! {
+//!     openssl aes-256-cbc -d -pbkdf2 -a <<EOF |
+//!     ...
+//! EOF
+//!   totp-qr $1 | sort -t, -k2
+//! }
+//! ```
+//! ### Note: If you're on a Mac using [iTerm2](https://iterm2.com/) check out [password manager](https://iterm2.com/features.html) (shortcut: ⌥ ⌘ F) for supplying passwords
+//!
+//! ### totp() displays tokens sorted by issuer
+//! ```text
+//! $> totp
+//! enter AES-256-CBC decryption password:
+//! 757676, Example
+//! 757676, Test1
+//! 255080, Test2
+//! 476239, Test3
+//! ```
+//! ### totp -e to view account details as JSON
+//! ```text
+//! $> totp -e | jq
+//! enter AES-256-CBC decryption password:
+//! [
+//!   {
+//!     "secret": "JBSWY3DPEHPK3PXP",
+//!     "issuer": "Test1",
+//!     "sha": "SHA1",
+//!     "digits": 6,
+//!     "period": 30
+//!   },
+//!   {
+//!     "secret": "JBSWY3DPEHPK3PXQ",
+//!     "issuer": "Test2",
+//!     "sha": "SHA1",
+//!     "digits": 6,
+//!     "period": 30
+//!   },
+//!   {
+//!     "secret": "JBSWY3DPEHPK3PXR",
+//!     "issuer": "Test3",
+//!     "sha": "SHA1",
+//!     "digits": 6,
+//!     "period": 30
+//!   },
+//!   {
+//!     "secret": "JBSWY3DPEHPK3PXP",
+//!     "issuer": "Example",
+//!     "sha": "SHA1",
+//!     "digits": 6,
+//!     "period": 30
+//!   }
+//! ]
+//! ```
+//! ### totp -u to view URI's
+//! ```text
+//! $> totp -u
+//! enter AES-256-CBC decryption password:
+//! otpauth-migration://offline?data=Ci0KCkhlbGxvId6tvu8SEnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKLQoKSGVsbG8h3q2%2B8BISdGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgotCgpIZWxsbyHerb7xEhJ0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAIYASAA
+//! otpauth://totp/Example:alice@google.com?issuer=Example&period=30&secret=JBSWY3DPEHPK3PXP
+//! ```
+//!
+//! <HR>
+//! <HR>
+//!
+//! ## General Usage
 //! ```text
 //! Usage: totp-qr [OPTIONS] [FILES]...
 //!
@@ -30,76 +193,12 @@
 //!   -v, --verbose      Verbose output
 //!   -e, --export       Export account information as JSON
 //!   -i, --import       Import JSON accounts
-//!   -u, --uri          Output account URI's
+//!   -u, --uri          Output extracted URI's
 //!   -h, --help         Print help
 //!   -V, --version      Print version
 //! ```
 //!
-//! ## Examples
-//!
-//! <HR>
-//!
-//! ### TOTP, Issuer
-//! ```text
-//! $> totp-qr images/*.jpg
-//! 237769, Test1
-//! 734660, Test2
-//! 021109, Test3
-//! 237769, Example
-//! ```
-//!
-//! ### otpauth URI's
-//! ```text
-//! $> totp-qr -u images/*.jpg
-//! otpauth-migration://offline?data=Ci0KCkhlbGxvId6tvu8SEnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKLQoKSGVsbG8h3q2%2B8BISdGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgotCgpIZWxsbyHerb7xEhJ0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAIYASAA
-//! otpauth://totp/Example:alice@google.com?issuer=Example&period=30&secret=JBSWY3DPEHPK3PXP
-//! ```
-//!
-//! ### Account information as JSON
-//! ```text
-//! $> totp-qr -e images/*.jpg | jq
-//! [
-//!  {
-//!    "secret": "JBSWY3DPEHPK3PXP",
-//!    "issuer": "Test1",
-//!    "sha": "SHA1",
-//!    "digits": 6,
-//!    "period": 30
-//!  },
-//!  {
-//!    "secret": "JBSWY3DPEHPK3PXQ",
-//!    "issuer": "Test2",
-//!    "sha": "SHA1",
-//!    "digits": 6,
-//!    "period": 30
-//!  },
-//!  {
-//!    "secret": "JBSWY3DPEHPK3PXR",
-//!    "issuer": "Test3",
-//!    "sha": "SHA1",
-//!    "digits": 6,
-//!    "period": 30
-//!  },
-//!  {
-//!    "secret": "JBSWY3DPEHPK3PXP",
-//!    "issuer": "Example",
-//!    "sha": "SHA1",
-//!    "digits": 6,
-//!    "period": 30
-//!  }
-//! ]
-//! ```
-//!
-//! ### Import JSON accounts
-//! ```text
-//! $> totp-qr -e images/*.jpg | totp-qr -iv
-//! 939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Test1", sha: "SHA1", digits: 6, period: 30 }
-//! 561818, Account { secret: "JBSWY3DPEHPK3PXQ", issuer: "Test2", sha: "SHA1", digits: 6, period: 30 }
-//! 787732, Account { secret: "JBSWY3DPEHPK3PXR", issuer: "Test3", sha: "SHA1", digits: 6, period: 30 }
-//! 939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Example", sha: "SHA1", digits: 6, period: 30 }
-//! ```
-//!
-//! ### Verbose Output
+//! ### Verbose Output (-v, --verbose)
 //! ```text
 //! $> totp-qr -v images/*.jpg
 //! otpauth = otpauth-migration://offline?data=Ci0KCkhlbGxvId6tvu8SEnRlc3QxQGV4YW1wbGUxLmNvbRoFVGVzdDEgASgBMAIKLQoKSGVsbG8h3q2%2B8BISdGVzdDJAZXhhbXBsZTIuY29tGgVUZXN0MiABKAEwAgotCgpIZWxsbyHerb7xEhJ0ZXN0M0BleGFtcGxlMy5jb20aBVRlc3QzIAEoATACEAIYASAA
@@ -111,13 +210,11 @@
 //! 237769, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Example", sha: "SHA1", digits: 6, period: 30 }
 //! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //! ```
-//!
-//! ### Input an auth link
+//! ### Auth link (-a, --auth)
 //! ```text
 //! $> totp-qr --auth="otpauth://totp/ACME%20Co:john.doe@email.com?secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ&issuer=ACME%20Co&algorithm=SHA1&digits=6&period=30"
 //! 970700, ACME Co
 //! ```
-//!
 //! ### Decode from stdin
 //! ```text
 //! $> echo 'secret=HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ' | totp-qr
@@ -128,6 +225,16 @@
 //! 734660, Test2
 //! 021109, Test3
 //! ```
+//! ### Import (-i, --import) / export (-e, --export) JSON Accounts
+//! ```text
+//! $> totp-qr -e images/*.jpg | totp-qr -iv
+//! 939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Test1", sha: "SHA1", digits: 6, period: 30 }
+//! 561818, Account { secret: "JBSWY3DPEHPK3PXQ", issuer: "Test2", sha: "SHA1", digits: 6, period: 30 }
+//! 787732, Account { secret: "JBSWY3DPEHPK3PXR", issuer: "Test3", sha: "SHA1", digits: 6, period: 30 }
+//! 939954, Account { secret: "JBSWY3DPEHPK3PXP", issuer: "Example", sha: "SHA1", digits: 6, period: 30 }
+//! ```
+
+// ===============================================================
 
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -151,7 +258,6 @@ mod totp_token;
 use crate::totp_token::Account;
 
 // Display the TOTP token and Account detail
-//fn display_accounts(accounts: &[Account], time: Option<u64>, verbose: bool) -> Result<(), Box<dyn Error>> {
 fn display_accounts(
     otpauths: &HashMap<String, Vec<Account>>,
     time: Option<u64>,
@@ -292,12 +398,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         let acc: Vec<_> = accounts.values().flatten().collect();
         println!("{}", serde_json::to_string(&acc)?);
     } else {
-        let time = None;
+        let time = None; // SystemTime::now()
         display_accounts(&accounts, time, args.verbose)?;
     }
 
     Ok(())
 }
+
+// ===============================================================
 
 #[cfg(test)]
 mod tests {
