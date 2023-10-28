@@ -8,11 +8,11 @@
 # https://github.com/dfarnham/aes
 #
 # aes options
-# -128, -192, -256    key length
-# -randiv             random initialization vector (arc4random)
-# -cbc                Cipher Block Chaining
-# -obase64            output Base-64
-# -hexkey             2-byte hex characters converted to 16,24,32 bytes
+# -d  decrypt
+# -r  random initialization vector (arc4random)
+# -c  Cipher Block Chaining
+# -a  output Base-64
+# -K  2-byte hex characters converted to 16,24,32 bytes
 #
 
 # Note the password required to be 64 hex bytes long for aes -256
@@ -25,7 +25,7 @@
 # totp() {
 # read -s -p "enter AES-256-CBC decryption password:" password
 # echo
-# aes -256 -decrypt -randiv -cbc -ibase64 -hexkey $password << EOF | totp-qr $1 | sort -t, -k2
+# aes --decrypt --randiv --cbc --ibase64 --hexkey $password << EOF | totp-qr $1 | sort -t, -k2
 # 4cs3Aqpd/C72h1+PDe1NTh6uQ2UWXdYVj82vaMWA4BtZ6F+Qp4lBTe64myeYY/mZtge9lDr51Oh7
 # rMgAzVoPsy8FHD8kdY/5nIypW2awA4u8DbFDR1YXwkTEPcHEU1esamBgeCjw+WkyKZgeyJj88FZP
 # JTr1GwEEGqvOUYM/plOBGoTmGw/muH+6IXzUUZ1ktpS2o1wDJ1iZDJYcixGI4F9VdHJfzadYiGIQ
@@ -56,7 +56,7 @@ totp-qr --uri ${QR_ImageDir}/* | \
 #########################################
 # encrypt uri's, output a Base-64 payload
 #########################################
-aes -256 -encrypt -randiv -cbc -obase64 -hexkey $password | \
+aes --encrypt --randiv --cbc --obase64 --hexkey $password | \
 #
 ############################################
 # emit a bash function: totp()
@@ -64,6 +64,6 @@ aes -256 -encrypt -randiv -cbc -obase64 -hexkey $password | \
 # 2. send uri's to totp-qr to generate codes
 # 3. sort output by issuer
 ############################################
-perl -0 -ne 'print "\ntotp() {\nread -s -p \"enter AES-256-CBC decryption password:\" password\necho\naes -256 -decrypt -randiv -cbc -ibase64 -hexkey \$password << EOF | totp-qr \$1 | sort -t, -k2\n${_}EOF\n}\n"'
+perl -0 -ne 'print "\ntotp() {\nread -s -p \"enter AES-256-CBC decryption password:\" password\necho\naes -drAcK \$password << EOF | totp-qr \$1 | sort -t, -k2\n${_}EOF\n}\n"'
 
 exit 0
